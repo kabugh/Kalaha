@@ -36,9 +36,7 @@
             class="box endZone"
             :class="{ players: currentPlayer === endZones[1].getOwner }"
           >
-            <h3>
-              {{ endZones[1].getStones }}
-            </h3>
+            <h3>{{ endZones[1].getStones }}</h3>
           </div>
         </div>
       </div>
@@ -52,7 +50,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, Ref, ref, watch } from "vue";
+import { defineComponent, Ref, ref } from "vue";
 import { movePlayerStones } from "@/services/Server";
 import House from "@/services/House";
 
@@ -85,11 +83,10 @@ const loadGame = () => {
   houses.value = loadHouses();
   endZones.value = [new House(12, 0, 0), new House(13, 0, 1)];
 
-  currentPlayer.value = 1;
+  currentPlayer.value = 0;
   gameMode.value = "PC vs PC";
 
   isGameRunning.value = true;
-  console.log(houses.value.length, endZones.value.length);
 
   return { gameMode, isGameRunning, houses, endZones, currentPlayer };
 };
@@ -112,12 +109,11 @@ export default defineComponent({
     ) => {
       if (houses[houseId].getStones === 0) return [endZones, houses];
       else {
-        currentPlayer.value = currentPlayer.value === 0 ? 1 : 0;
-        return ([endZones, houses] = movePlayerStones(
-          endZones,
-          houses,
-          houseId
-        ));
+        const moveResult = movePlayerStones(endZones, houses, houseId);
+        if (!moveResult.additionalMove)
+          currentPlayer.value = currentPlayer.value === 0 ? 1 : 0;
+
+        return [moveResult.endZones, moveResult.houses];
       }
     };
 
@@ -144,6 +140,7 @@ $houseGap: $horizontalGap / 3;
 $houseSize: 8vw;
 $houseColor: #f7d6ab;
 $houseColorHover: #dfbc8d;
+
 .game {
   width: 100%;
   height: 100vh;
