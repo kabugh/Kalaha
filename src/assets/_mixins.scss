@@ -1,0 +1,22 @@
+@mixin flex {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+@mixin transition {
+    transition: background 0.15s cubic-bezier(0.65, 0, 0.35, 1), color 0.15s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+@mixin backgroundDefault {
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+@mixin scalable-grid($rows, $columns) {
+    // width: $columns * $height / $rows;
+    display: grid;
+    grid-template-columns: repeat($columns, minmax(10%, 1fr));
+    grid-template-rows: repeat($rows, minmax(10%, 1fr));
+}
