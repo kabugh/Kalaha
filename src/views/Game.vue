@@ -1,66 +1,127 @@
 <template>
   <section class="game">
-    <div class="board__container" v-if="isGameRunning">
-      <div class="board__content">
-        <div class="endZone__container">
+    <transition name="fade" mode="out-in">
+      <div class="game__container" v-if="isGameRunning && !endResult">
+        <transition name="slide-fade" mode="out-in">
           <div
-            class="box endZone"
-            :class="{ players: currentPlayer === endZones[0].getOwner }"
+            class="player__indicator"
+            style="backgroundColor: #db0a5b"
+            v-if="currentPlayer == 0"
           >
-            <h3>
-              {{ endZones[0].getStones }}
-            </h3>
+            {{ playerName(currentPlayer) }}
           </div>
-        </div>
+          <div
+            class="player__indicator"
+            style="backgroundColor: #5333ed"
+            v-else
+          >
+            {{ playerName(currentPlayer) }}
+          </div>
+        </transition>
+        <div class="board__container">
+          <div class="board__content">
+            <div class="endZone__container">
+              <div
+                class="box endZone"
+                :class="{ players: currentPlayer === endZones[0].getOwner }"
+              >
+                <h3>
+                  {{ endZones[0].getStones }}
+                </h3>
+              </div>
+            </div>
 
-        <div class="houses__container">
-          <div
-            class="box house"
-            :class="{
-              active: currentPlayer === house.getOwner,
-              players: currentPlayer === 0 ? i < 6 : i >= 6
-            }"
-            @click="
-              currentPlayer === house.getOwner
-                ? moveStones(endZones, houses, i)
-                : ''
-            "
-            v-for="(house, i) in houses"
-            :key="i"
-          >
-            <h3>{{ house.stones }}</h3>
-          </div>
-        </div>
-        <div class="endZone__container">
-          <div
-            class="box endZone"
-            :class="{ players: currentPlayer === endZones[1].getOwner }"
-          >
-            <h3>{{ endZones[1].getStones }}</h3>
+            <div class="houses__container">
+              <div
+                class="box house"
+                :class="{
+                  active: currentPlayer === house.getOwner,
+                  players: currentPlayer === 0 ? i < 6 : i >= 6
+                }"
+                @click="
+                  currentPlayer === house.getOwner
+                    ? moveStones(houses, endZones, i)
+                    : ''
+                "
+                v-for="(house, i) in houses"
+                :key="i"
+              >
+                <h3>{{ house.stones }}</h3>
+              </div>
+            </div>
+            <div class="endZone__container">
+              <div
+                class="box endZone"
+                :class="{ players: currentPlayer === endZones[1].getOwner }"
+              >
+                <h3>{{ endZones[1].getStones }}</h3>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="game__settings" v-else>
-      <h2>Kalaha</h2>
-      <p>Choose gamemode</p>
-      <button type="button" @click="loadGame">Start</button>
-    </div>
+      <div class="game__settings" v-else-if="!isGameRunning && !endResult">
+        <h2>Kalaha</h2>
+        <p>Choose gamemode</p>
+        <select v-model="currentGameMode">
+          <option v-for="gameMode in gameModes" :key="gameMode">{{
+            gameMode
+          }}</option>
+        </select>
+        <button type="button" @click="isGameRunning = !isGameRunning">
+          Start
+        </button>
+      </div>
+      <div class="result__container" v-else>
+        <div class="result__content">
+          <h1>Game Over!</h1>
+          <h2 v-if="endResult.winner != -1">
+            The winner is: {{ playerName(endResult.winner) }}
+          </h2>
+          <h2 v-else>Draw.</h2>
+          <div class="result__tile">
+            <p>
+              {{
+                `${playerName(0)}: ${endResult.firstPlayerScore}
+              points`
+              }}
+            </p>
+          </div>
+          <div class="result__tile">
+            <p>
+              {{
+                `${playerName(1)}: ${endResult.secondPlayerScore}
+              points`
+              }}
+            </p>
+          </div>
+        </div>
+        <button type="button" @click="restartGame">Try again</button>
+      </div>
+    </transition>
+    <p class="footer">
+      Coded using Vue 3 composition api 💚 by
+      <a href="https://github.com/kabugh" target="_blank">kabugh</a>
+    </p>
   </section>
 </template>
 
 <script lang="ts">
 import { defineComponent, Ref, ref } from "vue";
-import { movePlayerStones } from "@/services/Server";
+import {
+  calculateResult,
+  isGameOver,
+  movePlayerStones,
+  Result
+} from "@/services/Server";
 import House from "@/services/House";
 
 type GameMode = "PC vs PC" | "PC vs Player" | "Player vs Player";
-
 type EndZone = House;
 
 const loadHouses = () => {
   const numberOfHouses = 12;
-  const numberOfStones = 30;
+  const numberOfStones = 2;
   const numberOfPlayerHouses = 6;
   const houses: House[] = Array(numberOfHouses);
 
@@ -71,60 +132,100 @@ const loadHouses = () => {
 };
 
 const loadGame = () => {
-  const gameMode: Ref<GameMode> = ref("PC vs PC");
+  const gameModes: Ref<string[]> = ref([
+    "PC vs PC",
+    "PC vs Player",
+    "Player vs Player"
+  ]);
+  const currentGameMode: Ref<string> = ref(gameModes.value[0]);
   const isGameRunning = ref(false);
+
   const houses: Ref<House[]> = ref([]);
   const endZones: Ref<EndZone[]> = ref([]);
-  const currentPlayer: Ref<number> = ref(0);
-  console.log("Kalaha game");
-  console.log("Choose game mode: ");
-  console.log("PC vs PC", "PC vs Player", "Player vs Player");
+  const currentPlayer: Ref<number> = ref(1);
+  const endResult: Ref<Result | null> = ref(null);
 
   houses.value = loadHouses();
   endZones.value = [new House(12, 0, 0), new House(13, 0, 1)];
 
-  currentPlayer.value = 0;
-  gameMode.value = "PC vs PC";
-
-  isGameRunning.value = true;
-
-  return { gameMode, isGameRunning, houses, endZones, currentPlayer };
+  return {
+    gameModes,
+    currentGameMode,
+    isGameRunning,
+    houses,
+    endZones,
+    endResult,
+    currentPlayer
+  };
 };
 
 export default defineComponent({
   name: "Game",
   setup() {
     const {
-      gameMode,
+      gameModes,
+      currentGameMode,
       houses,
       endZones,
       currentPlayer,
+      endResult,
       isGameRunning
     } = loadGame();
 
+    const endGame = (houses: House[], endZones: House[]) => {
+      endResult.value = calculateResult(houses, endZones);
+      isGameRunning.value = false;
+    };
+
     const moveStones = (
-      endZones: EndZone[],
       houses: House[],
+      endZones: EndZone[],
       houseId: number
     ) => {
-      if (houses[houseId].getStones === 0) return [endZones, houses];
+      if (houses[houseId].getStones == 0) return;
       else {
-        const moveResult = movePlayerStones(endZones, houses, houseId);
+        const moveResult = movePlayerStones(houses, endZones, houseId);
         if (!moveResult.additionalMove)
-          currentPlayer.value = currentPlayer.value === 0 ? 1 : 0;
+          currentPlayer.value = currentPlayer.value == 0 ? 1 : 0;
 
-        return [moveResult.endZones, moveResult.houses];
+        if (isGameOver(moveResult.houses))
+          endGame(moveResult.houses, moveResult.endZones);
+      }
+    };
+
+    const restartGame = () => {
+      isGameRunning.value = false;
+      houses.value = loadHouses();
+      endZones.value = [new House(12, 0, 0), new House(13, 0, 1)];
+      currentPlayer.value = 1;
+      endResult.value = null;
+    };
+
+    const playerName = (currentPlayer: number) => {
+      switch (currentGameMode.value) {
+        case gameModes.value[0]:
+          return currentPlayer == 0 ? "PC 1" : "PC 2";
+        case gameModes.value[1]:
+          return currentPlayer == 0 ? "PC" : "You";
+        case gameModes.value[2]:
+          return currentPlayer == 0 ? "P 1" : "P 2";
+        default:
+          return "";
       }
     };
 
     return {
-      gameMode,
+      gameModes,
+      currentGameMode,
       isGameRunning,
       houses,
       endZones,
       currentPlayer,
+      endResult,
       loadGame,
-      moveStones
+      moveStones,
+      restartGame,
+      playerName
     };
   }
 });
@@ -149,7 +250,31 @@ $houseColorHover: #dfbc8d;
   background: #343637;
   background: -webkit-linear-gradient(to bottom, #414345, #343637);
   background: linear-gradient(to bottom, #414345, #343637);
-
+  .game__container {
+    @include flex;
+    flex-direction: column;
+    .player__indicator {
+      width: $houseSize;
+      height: $houseSize;
+      border-radius: 50%;
+      background-color: white;
+      @include flex;
+      margin-bottom: 2vh;
+      font-weight: bold;
+      @media (min-width: 768px) {
+        font-size: 1rem;
+        width: $houseSize / 1.5;
+        height: $houseSize / 1.5;
+        margin-bottom: 4vh;
+      }
+      @media (min-width: 1024px) {
+        font-size: 1.25rem;
+      }
+      @media (min-width: 1650px) {
+        font-size: 2rem;
+      }
+    }
+  }
   .board__container {
     @include flex;
     margin: 0 auto;
@@ -157,6 +282,7 @@ $houseColorHover: #dfbc8d;
     background-image: url("../assets/background.png");
     background-position: center;
     background-size: cover;
+    border-radius: 100px;
     .board__content {
       display: grid;
       grid-template-columns: auto;
@@ -298,7 +424,44 @@ $houseColorHover: #dfbc8d;
   }
 
   .game__settings {
+    display: flex;
+    flex-direction: column;
     padding: $verticalGap;
+    select {
+      margin-bottom: 1vh;
+      text-transform: unset;
+    }
+    h2 {
+      font-size: 3rem;
+      padding-bottom: 0;
+    }
+    p {
+      font-size: 1.5rem;
+    }
+  }
+
+  .result__container {
+    .result__content {
+      padding: 2vh 0;
+      h1 {
+        font-size: 3rem;
+        padding-bottom: 0;
+      }
+      h2 {
+        font-size: 2rem;
+      }
+    }
+  }
+
+  p.footer {
+    position: absolute;
+    bottom: 1vh;
+    font-size: 0.75rem;
+    a {
+      text-decoration: none;
+      font-weight: bold;
+      color: white;
+    }
   }
 }
 </style>

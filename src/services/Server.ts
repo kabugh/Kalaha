@@ -1,5 +1,11 @@
 import House from "./House";
 
+export type Result = {
+  firstPlayerScore: number;
+  secondPlayerScore: number;
+  winner: number;
+};
+
 const updateHouse = (house: House, numberOfStones: number) => {
   if (house != undefined) house.setStones = house.getStones + numberOfStones;
 };
@@ -12,8 +18,8 @@ const findOppositeHouseIndex = (houseId: number) => {
 };
 
 export function movePlayerStones(
-  endZones: House[],
   houses: House[],
+  endZones: House[],
   houseId: number
 ) {
   let additionalMove = false;
@@ -82,8 +88,54 @@ export function movePlayerStones(
     }
   }
   return {
-    endZones,
     houses,
+    endZones,
     additionalMove
   };
 }
+
+// check whether there are any stones left
+const checkRow = (houses: House[]): boolean => {
+  let isRowEmpty = true;
+  houses.forEach(house => {
+    if (house.getStones !== 0) isRowEmpty = false;
+  });
+  return isRowEmpty;
+};
+
+// sum stones of one player
+const sumStones = (houses: House[]) =>
+  houses.reduce((acc: number, house) => acc + house.getStones, 0);
+
+export const isGameOver = (houses: House[]) => {
+  let gameOver = true;
+  const firstRow = houses.filter(house => house.getOwner === 0);
+  const secondRow = houses.filter(house => house.getOwner === 1);
+
+  gameOver = checkRow(firstRow);
+  if (!gameOver) gameOver = checkRow(secondRow); // if 1st row is not empty, check 2nd one
+
+  return gameOver;
+};
+
+export const calculateResult = (houses: House[], endZones: House[]): Result => {
+  const firstRow = houses.filter(house => house.getOwner === 0);
+  const secondRow = houses.filter(house => house.getOwner === 1);
+
+  const firstPlayerScore = endZones[0].getStones + sumStones(firstRow);
+  const secondPlayerScore = endZones[1].getStones + sumStones(secondRow);
+
+  // first player wins = 0, second player wind = 1, draw = -1
+  const findWinner = () =>
+    firstPlayerScore > secondPlayerScore
+      ? 0
+      : firstPlayerScore == secondPlayerScore
+      ? -1
+      : 1;
+
+  return {
+    firstPlayerScore,
+    secondPlayerScore,
+    winner: findWinner()
+  };
+};
