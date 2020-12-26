@@ -143,15 +143,19 @@ import {
   MoveResult,
   Result
 } from "@/services/Server";
-import { advancedMoveAi, randomMoveAi } from "@/services/AiPlayer";
+import {
+  advancedMoveAi,
+  randomMoveAi,
+  numberOfPlayerHouses as playerHousesQuantity
+} from "@/services/AiPlayer";
 import House from "@/services/House";
 
 type EndZone = House;
 
 const loadHouses = () => {
   const numberOfHouses = 12;
-  const numberOfStones = 2;
-  const numberOfPlayerHouses = 6;
+  const numberOfStones = 6;
+  const numberOfPlayerHouses = playerHousesQuantity;
   const houses: House[] = Array(numberOfHouses);
 
   for (const i of houses.keys())
@@ -169,6 +173,7 @@ const loadGame = () => {
   const currentGameMode: Ref<string> = ref(gameModes.value[0]);
   const difficulties: Ref<string[]> = ref([
     "Random decisions",
+    "Following some rules",
     "Decision tree based"
   ]);
   const currentDifficulty: Ref<string> = ref(difficulties.value[0]);
@@ -268,13 +273,29 @@ export default defineComponent({
     ) => {
       return await new Promise<MoveResult>(resolve =>
         setTimeout(() => {
-          // const moveResult = randomMoveAi(
-          const moveResult = advancedMoveAi(
-            houses,
-            endZones,
-            currentPlayer,
-            currentHouseMove
-          );
+          let moveResult: MoveResult;
+          if (currentDifficulty.value == difficulties.value[0]) {
+            moveResult = randomMoveAi(
+              houses,
+              endZones,
+              currentPlayer,
+              currentHouseMove
+            );
+          } else if (currentDifficulty.value == difficulties.value[1]) {
+            moveResult = advancedMoveAi(
+              houses,
+              endZones,
+              currentPlayer,
+              currentHouseMove
+            );
+          } // to be replaced with decisiontreemove
+          else
+            moveResult = randomMoveAi(
+              houses,
+              endZones,
+              currentPlayer,
+              currentHouseMove
+            );
 
           moveInfo(
             moveResult.houses,

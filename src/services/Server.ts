@@ -1,3 +1,4 @@
+import { numberOfPlayerHouses } from "./AiPlayer";
 import House from "./House";
 
 export type Result = {
@@ -17,7 +18,7 @@ const updateHouse = (house: House, numberOfStones: number) => {
 };
 
 const findOppositeHouseIndex = (houseId: number) => {
-  const housesInOneRow = 6;
+  const housesInOneRow = numberOfPlayerHouses; // 6
   return houseId < housesInOneRow
     ? houseId + housesInOneRow
     : houseId - housesInOneRow;

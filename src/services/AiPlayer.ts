@@ -3,13 +3,14 @@ import House from "./House";
 import { movePlayerStones, MoveResult, sumStones } from "./Server";
 import { getRandomInt } from "./utils/Utils";
 
+export const numberOfPlayerHouses = 6;
+
 export const randomMoveAi = (
   houses: House[],
   endZones: House[],
   currentPlayer: Ref<number>,
   currentHouseMove: Ref<number>
 ): MoveResult => {
-  const numberOfPlayerHouses = 6;
   let randomMove = getRandomInt(
     currentPlayer.value * numberOfPlayerHouses,
     numberOfPlayerHouses * (currentPlayer.value + 1)
@@ -39,7 +40,8 @@ export const advancedMoveAi = (
   currentPlayer: Ref<number>,
   currentHouseMove: Ref<number>
 ): MoveResult => {
-  const numberOfPlayerHouses = 6;
+  // An opimisation would be to get rid of 'currentPlayer.value == 0' check
+  // and use half of houses but it's difficult to work with IDs as they are 0 - 11.
   // if ai is starting, it will try to get an additional move
   let nextMoveHouse;
   if (currentPlayer.value == 0) {
@@ -48,7 +50,9 @@ export const advancedMoveAi = (
     );
   } else {
     nextMoveHouse = houses.filter(
-      house => house.getId >= 6 && house.getStones + house.getId == 12
+      house =>
+        house.getId >= numberOfPlayerHouses &&
+        house.getStones + house.getId == numberOfPlayerHouses * 2
     );
   }
 
@@ -101,8 +105,6 @@ export const advancedMoveAi = (
   console.log("Chosen nextMove 2): " + nextMove);
   // highlight recent move in template
   currentHouseMove.value = nextMove;
-  return movePlayerStones(houses, endZones, nextMove);
 
-  // uproscic z wykorzystaniem playerHouses
-  // return movePlayerStones(houses, endZones, currentPlayer.value == 0 ? nextMove : nextMove + 6);
+  return movePlayerStones(houses, endZones, nextMove);
 };
