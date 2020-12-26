@@ -23,7 +23,11 @@
             <div class="endZone__container">
               <div
                 class="box endZone"
-                :class="{ players: currentPlayer === endZones[0].getOwner }"
+                :class="{
+                  players:
+                    currentPlayer === endZones[0].getOwner &&
+                    currentGameMode != gameModes[0]
+                }"
               >
                 <h3>
                   {{ endZones[0].getStones }}
@@ -32,14 +36,15 @@
             </div>
 
             <div class="houses__container">
+              <!-- &&currentGameMode != gameModes[0] -->
               <div
                 class="box house"
                 :class="{
-                  active: currentPlayer === house.getOwner,
                   players: currentPlayer === 0 ? i < 6 : i >= 6
                 }"
                 @click="
-                  currentPlayer === house.getOwner
+                  currentPlayer === house.getOwner &&
+                  currentGameMode != gameModes[0]
                     ? moveStones(houses, endZones, i)
                     : ''
                 "
@@ -52,7 +57,11 @@
             <div class="endZone__container">
               <div
                 class="box endZone"
-                :class="{ players: currentPlayer === endZones[1].getOwner }"
+                :class="{
+                  players:
+                    currentPlayer === endZones[1].getOwner &&
+                    currentGameMode != gameModes[0]
+                }"
               >
                 <h3>{{ endZones[1].getStones }}</h3>
               </div>
@@ -62,13 +71,22 @@
       </div>
       <div class="game__settings" v-else-if="!isGameRunning && !endResult">
         <h2>Kalaha</h2>
-        <p>Choose gamemode</p>
+        <p>Gamemode</p>
         <select v-model="currentGameMode">
           <option v-for="gameMode in gameModes" :key="gameMode">{{
             gameMode
           }}</option>
         </select>
-        <button type="button" @click="isGameRunning = !isGameRunning">
+        <div class="difficulty__container">
+          <p>PC advancement</p>
+          <select v-model="currentDifficulty">
+            <option v-for="difficulty in difficulties" :key="difficulty">{{
+              difficulty
+            }}</option>
+          </select>
+        </div>
+
+        <button type="button" @click="startGame">
           Start
         </button>
       </div>
@@ -104,6 +122,7 @@
       <a href="https://github.com/kabugh" target="_blank">kabugh</a>
     </p>
   </section>
+  <!-- <button type="button" @click="">Ai move</button> -->
 </template>
 
 <script lang="ts">
@@ -114,9 +133,9 @@ import {
   movePlayerStones,
   Result
 } from "@/services/Server";
+import { randomMoveAi } from "@/services/AiPlayer";
 import House from "@/services/House";
 
-type GameMode = "PC vs PC" | "PC vs Player" | "Player vs Player";
 type EndZone = House;
 
 const loadHouses = () => {
@@ -138,7 +157,12 @@ const loadGame = () => {
     "Player vs Player"
   ]);
   const currentGameMode: Ref<string> = ref(gameModes.value[0]);
-  const isGameRunning = ref(false);
+  const difficulties: Ref<string[]> = ref([
+    "Random decisions",
+    "Decision tree based"
+  ]);
+  const currentDifficulty: Ref<string> = ref(difficulties.value[0]);
+  const isGameRunning: Ref<boolean> = ref(false);
 
   const houses: Ref<House[]> = ref([]);
   const endZones: Ref<EndZone[]> = ref([]);
@@ -151,6 +175,8 @@ const loadGame = () => {
   return {
     gameModes,
     currentGameMode,
+    difficulties,
+    currentDifficulty,
     isGameRunning,
     houses,
     endZones,
@@ -162,9 +188,12 @@ const loadGame = () => {
 export default defineComponent({
   name: "Game",
   setup() {
-    const {
+    /* eslint-disable prefer-const */
+    let {
       gameModes,
       currentGameMode,
+      difficulties,
+      currentDifficulty,
       houses,
       endZones,
       currentPlayer,
@@ -214,9 +243,38 @@ export default defineComponent({
       }
     };
 
+    const simulateMove = async (houses: House[], endZones: House[]) => {
+      await new Promise<void>(resolve =>
+        setTimeout(() => {
+          const moveResult = randomMoveAi(houses, endZones, currentPlayer);
+          if (isGameOver(moveResult.houses))
+            endGame(moveResult.houses, moveResult.endZones);
+
+          if (!moveResult.additionalMove)
+            currentPlayer.value = currentPlayer.value == 0 ? 1 : 0;
+          resolve();
+        }, 2000)
+      );
+    };
+
+    const simulation = async (houses: House[], endZones: House[]) => {
+      while (isGameRunning.value) {
+        console.log(isGameRunning.value);
+        await simulateMove(houses, endZones);
+      }
+    };
+
+    const startGame = () => {
+      isGameRunning.value = !isGameRunning.value;
+      if (currentGameMode.value == gameModes.value[0])
+        simulation(houses.value, endZones.value);
+    };
+
     return {
       gameModes,
       currentGameMode,
+      difficulties,
+      currentDifficulty,
       isGameRunning,
       houses,
       endZones,
@@ -225,7 +283,8 @@ export default defineComponent({
       loadGame,
       moveStones,
       restartGame,
-      playerName
+      playerName,
+      startGame
     };
   }
 });
@@ -430,13 +489,17 @@ $houseColorHover: #dfbc8d;
     select {
       margin-bottom: 1vh;
       text-transform: unset;
+      width: 100%;
     }
     h2 {
       font-size: 3rem;
       padding-bottom: 0;
     }
     p {
-      font-size: 1.5rem;
+      font-size: 1.125rem;
+    }
+    button {
+      margin-top: 1vh;
     }
   }
 

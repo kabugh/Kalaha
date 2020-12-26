@@ -104,7 +104,7 @@ const checkRow = (houses: House[]): boolean => {
 };
 
 // sum stones of one player
-const sumStones = (houses: House[]) =>
+export const sumStones = (houses: House[]) =>
   houses.reduce((acc: number, house) => acc + house.getStones, 0);
 
 export const isGameOver = (houses: House[]) => {
