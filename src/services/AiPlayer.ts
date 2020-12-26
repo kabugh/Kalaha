@@ -1,13 +1,14 @@
 import { Ref } from "vue";
 import House from "./House";
-import { movePlayerStones, sumStones } from "./Server";
+import { movePlayerStones, MoveResult, sumStones } from "./Server";
 import { getRandomInt } from "./utils/Utils";
 
 export const randomMoveAi = (
   houses: House[],
   endZones: House[],
-  currentPlayer: Ref<number>
-) => {
+  currentPlayer: Ref<number>,
+  currentHouseMove: Ref<number>
+): MoveResult => {
   const numberOfPlayerHouses = 6;
   let randomMove = getRandomInt(
     currentPlayer.value * numberOfPlayerHouses,
@@ -26,8 +27,8 @@ export const randomMoveAi = (
         numberOfPlayerHouses * (currentPlayer.value + 1)
       );
     }
-    console.log(`move ${randomMove} - stones left: ${availableStones}`);
   }
-
+  // highlight recent move in template
+  currentHouseMove.value = randomMove;
   return movePlayerStones(houses, endZones, randomMove);
 };

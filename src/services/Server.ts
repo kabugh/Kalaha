@@ -6,6 +6,12 @@ export type Result = {
   winner: number;
 };
 
+export type MoveResult = {
+  houses: House[];
+  endZones: House[];
+  additionalMove: boolean;
+};
+
 const updateHouse = (house: House, numberOfStones: number) => {
   if (house != undefined) house.setStones = house.getStones + numberOfStones;
 };
@@ -21,7 +27,7 @@ export function movePlayerStones(
   houses: House[],
   endZones: House[],
   houseId: number
-) {
+): MoveResult {
   let additionalMove = false;
   let housePoints = houses[houseId].getStones;
   houses[houseId].setStones = 0;
@@ -138,4 +144,22 @@ export const calculateResult = (houses: House[], endZones: House[]): Result => {
     secondPlayerScore,
     winner: findWinner()
   };
+};
+
+export const moveInfo = (
+  houses: House[],
+  endZones: House[],
+  houseId: number,
+  currentPlayer: number
+) => {
+  const availableStones = sumStones(
+    houses.filter(house => house.getOwner == currentPlayer)
+  );
+
+  console.log(`Move stones from house: ${houseId}`);
+  console.log(
+    `(player's / all) stones left: (${availableStones}/${sumStones(houses)})`
+  );
+  console.log(`P1 score: ${endZones[0].getStones}`);
+  console.log(`P2 score: ${endZones[1].getStones}`);
 };

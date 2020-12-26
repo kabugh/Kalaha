@@ -36,18 +36,19 @@
             </div>
 
             <div class="houses__container">
-              <!-- &&currentGameMode != gameModes[0] -->
               <div
                 class="box house"
                 :class="{
-                  players: currentPlayer === 0 ? i < 6 : i >= 6
+                  active:
+                    ((currentPlayer === 0 ? i < 6 : i >= 6) &&
+                      currentGameMode == gameModes[2]) ||
+                    (i >= 6 &&
+                      currentPlayer == 1 &&
+                      currentGameMode == gameModes[1]),
+                  players: currentPlayer === 0 ? i < 6 : i >= 6,
+                  currentMove: currentHouseMove == i
                 }"
-                @click="
-                  currentPlayer === house.getOwner &&
-                  currentGameMode != gameModes[0]
-                    ? moveStones(houses, endZones, i)
-                    : ''
-                "
+                @click="prepareToMove(house, i)"
                 v-for="(house, i) in houses"
                 :key="i"
               >
@@ -97,9 +98,13 @@
         <div class="result__content">
           <h1>Game Over!</h1>
           <h2 v-if="endResult.winner != -1">
-            The winner is: {{ playerName(endResult.winner) }}
+            The winner is {{ playerName(endResult.winner) }}
           </h2>
           <h2 v-else>Draw.</h2>
+          <p>
+            Total points:
+            {{ endResult.firstPlayerScore + endResult.secondPlayerScore }}
+          </p>
           <div class="result__tile">
             <p>
               {{
@@ -133,7 +138,9 @@ import { defineComponent, Ref, ref, watch } from "vue";
 import {
   calculateResult,
   isGameOver,
+  moveInfo,
   movePlayerStones,
+  MoveResult,
   Result
 } from "@/services/Server";
 import { randomMoveAi } from "@/services/AiPlayer";
@@ -143,7 +150,7 @@ type EndZone = House;
 
 const loadHouses = () => {
   const numberOfHouses = 12;
-  const numberOfStones = 2;
+  const numberOfStones = 4;
   const numberOfPlayerHouses = 6;
   const houses: House[] = Array(numberOfHouses);
 
@@ -169,8 +176,10 @@ const loadGame = () => {
 
   const houses: Ref<House[]> = ref([]);
   const endZones: Ref<EndZone[]> = ref([]);
-  const currentPlayer: Ref<number> = ref(0);
+  const currentPlayer: Ref<number> = ref(1);
   const endResult: Ref<Result | null> = ref(null);
+
+  const currentHouseMove: Ref<number> = ref(-1);
 
   houses.value = loadHouses();
   endZones.value = [new House(12, 0, 0), new House(13, 0, 1)];
@@ -184,7 +193,8 @@ const loadGame = () => {
     houses,
     endZones,
     endResult,
-    currentPlayer
+    currentPlayer,
+    currentHouseMove
   };
 };
 
@@ -201,12 +211,14 @@ export default defineComponent({
       endZones,
       currentPlayer,
       endResult,
-      isGameRunning
+      isGameRunning,
+      currentHouseMove
     } = loadGame();
 
     const endGame = (houses: House[], endZones: House[]) => {
       endResult.value = calculateResult(houses, endZones);
       isGameRunning.value = false;
+      currentHouseMove.value = -1;
     };
 
     const moveStones = (
@@ -217,6 +229,8 @@ export default defineComponent({
       if (houses[houseId].getStones == 0) return;
       else {
         const moveResult = movePlayerStones(houses, endZones, houseId);
+        moveInfo(houses, endZones, houseId, currentPlayer.value);
+
         if (!moveResult.additionalMove)
           currentPlayer.value = currentPlayer.value == 0 ? 1 : 0;
 
@@ -229,8 +243,9 @@ export default defineComponent({
       isGameRunning.value = false;
       houses.value = loadHouses();
       endZones.value = [new House(12, 0, 0), new House(13, 0, 1)];
-      currentPlayer.value = 1;
+      currentPlayer.value = 0;
       endResult.value = null;
+      currentHouseMove.value = -1;
     };
 
     const playerName = (currentPlayer: number) => {
@@ -246,31 +261,55 @@ export default defineComponent({
       }
     };
 
-    const simulateMove = async (houses: House[], endZones: House[]) => {
-      await new Promise<void>(resolve =>
+    const simulateMove = async (
+      houses: House[],
+      endZones: House[],
+      currentHouseMove: Ref<number>
+    ) => {
+      return await new Promise<MoveResult>(resolve =>
         setTimeout(() => {
-          const moveResult = randomMoveAi(houses, endZones, currentPlayer);
+          const moveResult = randomMoveAi(
+            houses,
+            endZones,
+            currentPlayer,
+            currentHouseMove
+          );
+
+          moveInfo(
+            moveResult.houses,
+            moveResult.endZones,
+            currentHouseMove.value,
+            currentPlayer.value
+          );
+
           if (isGameOver(moveResult.houses))
             endGame(moveResult.houses, moveResult.endZones);
 
           if (!moveResult.additionalMove)
             currentPlayer.value = currentPlayer.value == 0 ? 1 : 0;
-          resolve();
+          resolve(moveResult);
         }, 2000)
       );
     };
 
     const autoSimulation = async (houses: House[], endZones: House[]) => {
       while (isGameRunning.value) {
-        console.log(isGameRunning.value);
-        await simulateMove(houses, endZones);
+        await simulateMove(houses, endZones, currentHouseMove);
       }
     };
 
     const partialSimulation = async (houses: House[], endZones: House[]) => {
-      while (isGameRunning.value) {
-        console.log(isGameRunning.value);
-        await simulateMove(houses, endZones);
+      if (currentPlayer.value == 0) {
+        let moveResult = await simulateMove(houses, endZones, currentHouseMove);
+
+        // PC has an additional move, so prompt him to move
+        while (moveResult.additionalMove) {
+          moveResult = await simulateMove(
+            moveResult.houses,
+            moveResult.endZones,
+            currentHouseMove
+          );
+        }
       }
     };
 
@@ -283,7 +322,29 @@ export default defineComponent({
         partialSimulation(houses.value, endZones.value);
     };
 
-    // watch(houses, (houses, prevHouses) => {}, { deep: true });
+    const prepareToMove = async (house: House, i: number) => {
+      if (currentPlayer.value === house.getOwner) {
+        if (currentGameMode.value == gameModes.value[2])
+          moveStones(houses.value, endZones.value, i);
+        else if (currentGameMode.value == gameModes.value[1] && i >= 6) {
+          moveStones(houses.value, endZones.value, i);
+        }
+      }
+
+      //   currentPlayer.value === house.getOwner &&
+      // (currentGameMode.value == gameModes.value[2] ||
+      //   (currentGameMode.value == gameModes.value[1] && i >= 6))
+      //   ? moveStones(houses.value, endZones.value, i)
+      //   : "";
+    };
+
+    watch(currentPlayer, (nextPlayer: number, prevPlayer: number) => {
+      // observe currentPlayer change - when user chooses his house
+      // it prompts the PC to move if gamemode is PC vs Player
+      if (nextPlayer == 0 && currentGameMode.value == gameModes.value[1]) {
+        partialSimulation(houses.value, endZones.value);
+      }
+    });
 
     return {
       gameModes,
@@ -299,7 +360,9 @@ export default defineComponent({
       moveStones,
       restartGame,
       playerName,
-      startGame
+      startGame,
+      currentHouseMove,
+      prepareToMove
     };
   }
 });
@@ -315,6 +378,7 @@ $houseGap: $horizontalGap / 3;
 $houseSize: 8vw;
 $houseColor: #f7d6ab;
 $houseColorHover: #dfbc8d;
+$currentMove: #ff950d;
 
 .game {
   width: 100%;
@@ -402,15 +466,18 @@ $houseColorHover: #dfbc8d;
         @include flex;
         @include transition;
         border-radius: 50%;
-        &:not(.endZone).players h3 {
-          color: $houseColor;
-        }
-        &:not(.endZone).players:hover {
+        &:not(.endZone).active:hover {
           cursor: pointer;
           background-color: rgba(0, 0, 0, 0.3);
         }
-        &:not(.endZone).players:hover h3 {
+        &:not(.endZone).players h3 {
+          color: $houseColor;
+        }
+        &:not(.endZone).active:hover h3 {
           color: $houseColorHover;
+        }
+        &:not(.endZone).currentMove {
+          color: $currentMove;
         }
         h3 {
           font-weight: bold;
