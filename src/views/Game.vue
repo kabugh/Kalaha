@@ -79,14 +79,17 @@
         </select>
         <div class="difficulty__container">
           <p>PC advancement</p>
-          <select v-model="currentDifficulty">
+          <select
+            v-model="currentDifficulty"
+            :disabled="currentGameMode == gameModes[2]"
+          >
             <option v-for="difficulty in difficulties" :key="difficulty">{{
               difficulty
             }}</option>
           </select>
         </div>
 
-        <button type="button" @click="startGame">
+        <button type="button" @click="startGame" :disabled="isGameRunning">
           Start
         </button>
       </div>
@@ -126,7 +129,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, Ref, ref } from "vue";
+import { defineComponent, Ref, ref, watch } from "vue";
 import {
   calculateResult,
   isGameOver,
@@ -166,7 +169,7 @@ const loadGame = () => {
 
   const houses: Ref<House[]> = ref([]);
   const endZones: Ref<EndZone[]> = ref([]);
-  const currentPlayer: Ref<number> = ref(1);
+  const currentPlayer: Ref<number> = ref(0);
   const endResult: Ref<Result | null> = ref(null);
 
   houses.value = loadHouses();
@@ -257,7 +260,14 @@ export default defineComponent({
       );
     };
 
-    const simulation = async (houses: House[], endZones: House[]) => {
+    const autoSimulation = async (houses: House[], endZones: House[]) => {
+      while (isGameRunning.value) {
+        console.log(isGameRunning.value);
+        await simulateMove(houses, endZones);
+      }
+    };
+
+    const partialSimulation = async (houses: House[], endZones: House[]) => {
       while (isGameRunning.value) {
         console.log(isGameRunning.value);
         await simulateMove(houses, endZones);
@@ -265,10 +275,15 @@ export default defineComponent({
     };
 
     const startGame = () => {
+      if (isGameRunning.value) return;
       isGameRunning.value = !isGameRunning.value;
       if (currentGameMode.value == gameModes.value[0])
-        simulation(houses.value, endZones.value);
+        autoSimulation(houses.value, endZones.value);
+      else if (currentGameMode.value == gameModes.value[1])
+        partialSimulation(houses.value, endZones.value);
     };
+
+    // watch(houses, (houses, prevHouses) => {}, { deep: true });
 
     return {
       gameModes,
