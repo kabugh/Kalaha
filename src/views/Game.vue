@@ -143,14 +143,14 @@ import {
   MoveResult,
   Result
 } from "@/services/Server";
-import { randomMoveAi } from "@/services/AiPlayer";
+import { advancedMoveAi, randomMoveAi } from "@/services/AiPlayer";
 import House from "@/services/House";
 
 type EndZone = House;
 
 const loadHouses = () => {
   const numberOfHouses = 12;
-  const numberOfStones = 4;
+  const numberOfStones = 2;
   const numberOfPlayerHouses = 6;
   const houses: House[] = Array(numberOfHouses);
 
@@ -176,7 +176,7 @@ const loadGame = () => {
 
   const houses: Ref<House[]> = ref([]);
   const endZones: Ref<EndZone[]> = ref([]);
-  const currentPlayer: Ref<number> = ref(1);
+  const currentPlayer: Ref<number> = ref(0);
   const endResult: Ref<Result | null> = ref(null);
 
   const currentHouseMove: Ref<number> = ref(-1);
@@ -268,7 +268,8 @@ export default defineComponent({
     ) => {
       return await new Promise<MoveResult>(resolve =>
         setTimeout(() => {
-          const moveResult = randomMoveAi(
+          // const moveResult = randomMoveAi(
+          const moveResult = advancedMoveAi(
             houses,
             endZones,
             currentPlayer,
@@ -338,10 +339,15 @@ export default defineComponent({
       //   : "";
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     watch(currentPlayer, (nextPlayer: number, prevPlayer: number) => {
       // observe currentPlayer change - when user chooses his house
       // it prompts the PC to move if gamemode is PC vs Player
-      if (nextPlayer == 0 && currentGameMode.value == gameModes.value[1]) {
+      if (
+        isGameRunning.value &&
+        nextPlayer == 0 &&
+        currentGameMode.value == gameModes.value[1]
+      ) {
         partialSimulation(houses.value, endZones.value);
       }
     });
