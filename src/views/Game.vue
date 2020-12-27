@@ -146,7 +146,8 @@ import {
 import {
   advancedMoveAi,
   randomMoveAi,
-  numberOfPlayerHouses as playerHousesQuantity
+  numberOfPlayerHouses as playerHousesQuantity,
+  decisionTreeMoveAi
 } from "@/services/AiPlayer";
 import House from "@/services/House";
 
@@ -154,7 +155,7 @@ type EndZone = House;
 
 const loadHouses = () => {
   const numberOfHouses = 12;
-  const numberOfStones = 6;
+  const numberOfStones = 4;
   const numberOfPlayerHouses = playerHousesQuantity;
   const houses: House[] = Array(numberOfHouses);
 
@@ -288,9 +289,8 @@ export default defineComponent({
               currentPlayer,
               currentHouseMove
             );
-          } // to be replaced with decisiontreemove
-          else
-            moveResult = randomMoveAi(
+          } else
+            moveResult = decisionTreeMoveAi(
               houses,
               endZones,
               currentPlayer,

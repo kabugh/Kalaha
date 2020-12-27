@@ -1,7 +1,13 @@
 import { Ref } from "vue";
 import House from "./House";
-import { movePlayerStones, MoveResult, sumStones } from "./Server";
-import { getRandomInt } from "./utils/Utils";
+import {
+  calculateResult,
+  isGameOver,
+  movePlayerStones,
+  MoveResult,
+  sumStones
+} from "./Server";
+import { copyEndZones, copyHouses, getRandomInt } from "./utils/Utils";
 
 export const numberOfPlayerHouses = 6;
 
@@ -107,4 +113,123 @@ export const advancedMoveAi = (
   currentHouseMove.value = nextMove;
 
   return movePlayerStones(houses, endZones, nextMove);
+};
+
+const minimax = (
+  houses: House[],
+  endZones: House[],
+  treeDepth: number,
+  isMaximizing: boolean,
+  currentPlayer: number
+): number => {
+  console.log("End game: " + isGameOver(houses), "Tree depth: " + treeDepth);
+  if (isGameOver(houses) || treeDepth == 0) {
+    const result = calculateResult(houses, endZones);
+    return result.firstPlayerScore - result.secondPlayerScore;
+  }
+  if (isMaximizing) {
+    let maxScore = -Infinity;
+
+    for (
+      let i = currentPlayer * numberOfPlayerHouses;
+      i < numberOfPlayerHouses * (currentPlayer + 1);
+      i++
+    ) {
+      const housesCopy = copyHouses(houses);
+      const endZonesCopy = copyEndZones(endZones);
+      if (housesCopy[i].getStones > 0) {
+        const moveResult = movePlayerStones(housesCopy, endZonesCopy, i);
+
+        const currentScore = minimax(
+          moveResult.houses,
+          moveResult.endZones,
+          treeDepth - 1,
+          false,
+          currentPlayer == 0 ? 1 : 0
+        );
+
+        maxScore = currentScore > maxScore ? currentScore : maxScore;
+      }
+    }
+
+    return maxScore;
+  } else {
+    let minScore = Infinity;
+
+    for (
+      let i = currentPlayer * numberOfPlayerHouses;
+      i < numberOfPlayerHouses * (currentPlayer + 1);
+      i++
+    ) {
+      const housesCopy = copyHouses(houses);
+      const endZonesCopy = copyEndZones(endZones);
+      if (housesCopy[i].getStones > 0) {
+        const moveResult = movePlayerStones(housesCopy, endZonesCopy, i);
+
+        // no need to pass moveResult.houses, can use housesCopy
+        // the object is modified anyways
+        const currentScore = minimax(
+          moveResult.houses,
+          moveResult.endZones,
+          treeDepth - 1,
+          true,
+          currentPlayer == 0 ? 1 : 0
+        );
+
+        minScore = currentScore > minScore ? currentScore : minScore;
+      }
+    }
+
+    return minScore;
+  }
+};
+
+export const decisionTreeMoveAi = (
+  houses: House[],
+  endZones: House[],
+  currentPlayer: Ref<number>,
+  currentHouseMove: Ref<number>
+): MoveResult => {
+  let currentBestScore = -Infinity;
+  let move = 0;
+
+  // create a deep copy so as not to modify the original data before choosing the best move
+  const housesCopy = copyHouses(houses);
+  const endZonesCopy = copyEndZones(endZones);
+
+  // check where to move
+  for (
+    let i = currentPlayer.value * numberOfPlayerHouses;
+    i < numberOfPlayerHouses * (currentPlayer.value + 1);
+    i++
+  ) {
+    const additionalHousesCopy = copyHouses(housesCopy);
+    const additionalEndZonesCopy = copyEndZones(endZonesCopy);
+
+    if (additionalHousesCopy[i].getStones > 0) {
+      const moveResult = movePlayerStones(
+        additionalHousesCopy,
+        additionalEndZonesCopy,
+        i
+      );
+
+      const score = minimax(
+        moveResult.houses,
+        moveResult.endZones,
+        3, // how far should you evaluate a tree
+        true,
+        currentPlayer.value
+      );
+
+      if (score > currentBestScore) {
+        currentBestScore = score;
+        move = i;
+      }
+    }
+  }
+
+  console.log("Chosen move: " + move, "Best score:" + currentBestScore);
+
+  currentHouseMove.value = move;
+  return movePlayerStones(houses, endZones, move);
 };
