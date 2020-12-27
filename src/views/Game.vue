@@ -155,7 +155,7 @@ type EndZone = House;
 
 const loadHouses = () => {
   const numberOfHouses = 12;
-  const numberOfStones = 4;
+  const numberOfStones = 6;
   const numberOfPlayerHouses = playerHousesQuantity;
   const houses: House[] = Array(numberOfHouses);
 

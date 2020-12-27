@@ -147,6 +147,21 @@ export const calculateResult = (houses: House[], endZones: House[]): Result => {
   };
 };
 
+export const currentGameInfo = (houses: House[]) => {
+  console.table(
+    houses
+      .filter(house => house.getOwner == 0)
+      .map(house => house.getStones)
+      .join(", ")
+  );
+  console.table(
+    houses
+      .filter(house => house.getOwner == 1)
+      .map(house => house.getStones)
+      .join(", ")
+  );
+};
+
 export const moveInfo = (
   houses: House[],
   endZones: House[],
@@ -163,4 +178,5 @@ export const moveInfo = (
   );
   console.log(`P1 score: ${endZones[0].getStones}`);
   console.log(`P2 score: ${endZones[1].getStones}`);
+  currentGameInfo(houses);
 };

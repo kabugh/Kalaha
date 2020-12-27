@@ -2,12 +2,13 @@ import { Ref } from "vue";
 import House from "./House";
 import {
   calculateResult,
+  currentGameInfo,
   isGameOver,
   movePlayerStones,
   MoveResult,
   sumStones
 } from "./Server";
-import { copyEndZones, copyHouses, getRandomInt } from "./utils/Utils";
+import { copyEndZones, copyHouses, getRandomInt } from "./Utils";
 
 export const numberOfPlayerHouses = 6;
 
@@ -37,6 +38,7 @@ export const randomMoveAi = (
   }
   // highlight recent move in template
   currentHouseMove.value = randomMove;
+  currentGameInfo(houses);
   return movePlayerStones(houses, endZones, randomMove);
 };
 
@@ -109,6 +111,7 @@ export const advancedMoveAi = (
     }
   }
   console.log("Chosen nextMove 2): " + nextMove);
+  currentGameInfo(houses);
   // highlight recent move in template
   currentHouseMove.value = nextMove;
 
@@ -130,7 +133,7 @@ const minimax = (
     return result.firstPlayerScore - result.secondPlayerScore;
   }
   if (isMaximizing) {
-    let maxScore = -Infinity; // we want to find the move that will make us get highest possible score
+    let maxScore = -Infinity; // we want to find the move that will make us get the highest possible score
 
     for (
       let i = currentPlayer * numberOfPlayerHouses;
@@ -156,7 +159,7 @@ const minimax = (
 
     return maxScore;
   } else {
-    let minScore = Infinity; // we want to find the move that will make us get smallest possible score
+    let minScore = Infinity; // we want to find the move that will make us get the smallest possible score
 
     for (
       let i = currentPlayer * numberOfPlayerHouses;
@@ -219,7 +222,7 @@ export const decisionTreeMoveAi = (
       const score = minimax(
         moveResult.houses,
         moveResult.endZones,
-        5, // how far should the game (tree) be evaluated
+        4, // how far should the game (tree) be evaluated in order to choose the best move
         true,
         currentPlayer.value
       );
@@ -234,5 +237,6 @@ export const decisionTreeMoveAi = (
   console.log("Chosen move: " + move, "Best score:" + currentBestScore);
 
   currentHouseMove.value = move;
+  currentGameInfo(houses);
   return movePlayerStones(houses, endZones, move);
 };
