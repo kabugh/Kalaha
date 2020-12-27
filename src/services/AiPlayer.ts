@@ -123,12 +123,14 @@ const minimax = (
   currentPlayer: number
 ): number => {
   console.log("End game: " + isGameOver(houses), "Tree depth: " + treeDepth);
+  // if the game is over or if the tree is fully searched,
+  // return a result which is the difference between players' points (the advantage).
   if (isGameOver(houses) || treeDepth == 0) {
     const result = calculateResult(houses, endZones);
     return result.firstPlayerScore - result.secondPlayerScore;
   }
   if (isMaximizing) {
-    let maxScore = -Infinity;
+    let maxScore = -Infinity; // we want to find the move that will make us get highest possible score
 
     for (
       let i = currentPlayer * numberOfPlayerHouses;
@@ -154,7 +156,7 @@ const minimax = (
 
     return maxScore;
   } else {
-    let minScore = Infinity;
+    let minScore = Infinity; // we want to find the move that will make us get smallest possible score
 
     for (
       let i = currentPlayer * numberOfPlayerHouses;
@@ -176,7 +178,7 @@ const minimax = (
           currentPlayer == 0 ? 1 : 0
         );
 
-        minScore = currentScore > minScore ? currentScore : minScore;
+        minScore = currentScore < minScore ? currentScore : minScore;
       }
     }
 
@@ -197,7 +199,8 @@ export const decisionTreeMoveAi = (
   const housesCopy = copyHouses(houses);
   const endZonesCopy = copyEndZones(endZones);
 
-  // check where to move
+  // find the index to move stones, which will be the best choice for AI
+  // iterate over each possible move and perform minimax to calculate the best move out of that
   for (
     let i = currentPlayer.value * numberOfPlayerHouses;
     i < numberOfPlayerHouses * (currentPlayer.value + 1);
@@ -216,7 +219,7 @@ export const decisionTreeMoveAi = (
       const score = minimax(
         moveResult.houses,
         moveResult.endZones,
-        3, // how far should you evaluate a tree
+        5, // how far should the game (tree) be evaluated
         true,
         currentPlayer.value
       );
