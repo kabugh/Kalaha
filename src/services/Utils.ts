@@ -1,4 +1,4 @@
-import House from "../House";
+import House from "./House";
 
 // min is inclusive, max is exclusive
 export function getRandomInt(min: number, max: number) {
