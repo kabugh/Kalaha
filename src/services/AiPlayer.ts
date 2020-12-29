@@ -122,10 +122,12 @@ const minimax = (
   houses: House[],
   endZones: House[],
   treeDepth: number,
+  alpha: number,
+  beta: number,
   isMaximizing: boolean,
   currentPlayer: number
 ): number => {
-  console.log("End game: " + isGameOver(houses), "Tree depth: " + treeDepth);
+  // console.log("End game: " + isGameOver(houses), "Tree depth: " + treeDepth);
   // if the game is over or if the tree is fully searched,
   // return a result which is the difference between players' points (the advantage).
   if (isGameOver(houses) || treeDepth == 0) {
@@ -149,11 +151,15 @@ const minimax = (
           moveResult.houses,
           moveResult.endZones,
           treeDepth - 1,
+          alpha,
+          beta,
           false,
           currentPlayer == 0 ? 1 : 0
         );
 
         maxScore = currentScore > maxScore ? currentScore : maxScore;
+        alpha = currentScore > alpha ? currentScore : alpha;
+        if (beta <= alpha) break;
       }
     }
 
@@ -177,11 +183,15 @@ const minimax = (
           moveResult.houses,
           moveResult.endZones,
           treeDepth - 1,
+          alpha,
+          beta,
           true,
           currentPlayer == 0 ? 1 : 0
         );
 
         minScore = currentScore < minScore ? currentScore : minScore;
+        beta = currentScore < beta ? currentScore : beta;
+        if (beta <= alpha) break;
       }
     }
 
@@ -196,6 +206,8 @@ export const decisionTreeMoveAi = (
   currentHouseMove: Ref<number>
 ): MoveResult => {
   let currentBestScore = -Infinity;
+  const alpha = -Infinity;
+  const beta = Infinity;
   let move = 0;
 
   // create a deep copy so as not to modify the original data before choosing the best move
@@ -222,7 +234,9 @@ export const decisionTreeMoveAi = (
       const score = minimax(
         moveResult.houses,
         moveResult.endZones,
-        4, // how far should the game (tree) be evaluated in order to choose the best move
+        7, // how far should the game (tree) be evaluated in order to choose the best move,
+        alpha,
+        beta,
         true,
         currentPlayer.value
       );
@@ -234,7 +248,10 @@ export const decisionTreeMoveAi = (
     }
   }
 
-  console.log("Chosen move: " + move, "Best score:" + currentBestScore);
+  console.log(
+    "Chosen move: " + move,
+    "Possible advantage: " + currentBestScore
+  );
 
   currentHouseMove.value = move;
   currentGameInfo(houses);
