@@ -1,3 +1,4 @@
+import { Ref } from "vue";
 import { numberOfPlayerHouses } from "./AiPlayer";
 import House from "./House";
 
@@ -22,6 +23,27 @@ const findOppositeHouseIndex = (houseId: number) => {
   return houseId < housesInOneRow
     ? houseId + housesInOneRow
     : houseId - housesInOneRow;
+};
+
+export const checkPlayerMove = (
+  didPlayerMove: Ref<boolean>,
+  currentTimer: Ref<number>,
+  timeLimit: number
+) => {
+  return new Promise<boolean>(resolve => {
+    let counter = timeLimit;
+    let didMove = false;
+    const interval = setInterval(() => {
+      currentTimer.value = counter;
+      console.log(`Aktualna runda: ${counter}s`);
+      if (--counter <= 0 || didPlayerMove.value) {
+        didMove = didPlayerMove.value;
+        clearInterval(interval);
+        didPlayerMove.value = false;
+        resolve(didMove);
+      }
+    }, 1000);
+  });
 };
 
 export function movePlayerStones(

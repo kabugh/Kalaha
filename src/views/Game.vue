@@ -41,10 +41,12 @@
                 :class="{
                   active:
                     ((currentPlayer === 0 ? i < 6 : i >= 6) &&
-                      currentGameMode == gameModes[2]) ||
+                      currentGameMode == gameModes[2] &&
+                      !blockUserMove) ||
                     (i >= 6 &&
                       currentPlayer == 1 &&
-                      currentGameMode == gameModes[1]),
+                      currentGameMode == gameModes[1] &&
+                      !blockUserMove),
                   players: currentPlayer === 0 ? i < 6 : i >= 6,
                   currentMove: currentHouseMove == i
                 }"
@@ -89,7 +91,15 @@
             }}</option>
           </select>
         </div>
-
+        <!-- <div class="checkbox">
+          <label>
+            <input type="checkbox" v-model="isTimeLimited" /><span
+              class="checkbox-material"
+              ><span class="check"></span
+            ></span>
+            <p>30 sec round limit</p>
+          </label>
+        </div> -->
         <button type="button" @click="startGame" :disabled="isGameRunning">
           Start
         </button>
@@ -137,6 +147,7 @@
 import { defineComponent, Ref, ref, watch } from "vue";
 import {
   calculateResult,
+  checkPlayerMove,
   isGameOver,
   moveInfo,
   movePlayerStones,
@@ -155,7 +166,7 @@ type EndZone = House;
 
 const loadHouses = () => {
   const numberOfHouses = 12;
-  const numberOfStones = 6;
+  const numberOfStones = 4;
   const numberOfPlayerHouses = playerHousesQuantity;
   const houses: House[] = Array(numberOfHouses);
 
@@ -178,7 +189,12 @@ const loadGame = () => {
     "Decision tree based"
   ]);
   const currentDifficulty: Ref<string> = ref(difficulties.value[0]);
+  const isTimeLimited: Ref<boolean> = ref(false);
+  const didPlayerMove: Ref<boolean> = ref(false);
+  const currentTimer: Ref<number> = ref(0);
+  const blockUserMove: Ref<boolean> = ref(false);
   const isGameRunning: Ref<boolean> = ref(false);
+  const timeLimit = 5;
 
   const houses: Ref<House[]> = ref([]);
   const endZones: Ref<EndZone[]> = ref([]);
@@ -195,7 +211,12 @@ const loadGame = () => {
     currentGameMode,
     difficulties,
     currentDifficulty,
+    isTimeLimited,
+    didPlayerMove,
+    currentTimer,
+    blockUserMove,
     isGameRunning,
+    timeLimit,
     houses,
     endZones,
     endResult,
@@ -213,6 +234,11 @@ export default defineComponent({
       currentGameMode,
       difficulties,
       currentDifficulty,
+      isTimeLimited,
+      didPlayerMove,
+      currentTimer,
+      blockUserMove,
+      timeLimit,
       houses,
       endZones,
       currentPlayer,
@@ -227,25 +253,8 @@ export default defineComponent({
       currentHouseMove.value = -1;
     };
 
-    const moveStones = (
-      houses: House[],
-      endZones: EndZone[],
-      houseId: number
-    ) => {
-      if (houses[houseId].getStones == 0) return;
-      else {
-        const moveResult = movePlayerStones(houses, endZones, houseId);
-        moveInfo(houses, endZones, houseId, currentPlayer.value);
-
-        if (!moveResult.additionalMove)
-          currentPlayer.value = currentPlayer.value == 0 ? 1 : 0;
-
-        if (isGameOver(moveResult.houses))
-          endGame(moveResult.houses, moveResult.endZones);
-      }
-    };
-
     const restartGame = () => {
+      didPlayerMove.value = false;
       isGameRunning.value = false;
       houses.value = loadHouses();
       endZones.value = [new House(12, 0, 0), new House(13, 0, 1)];
@@ -273,7 +282,7 @@ export default defineComponent({
       currentHouseMove: Ref<number>
     ) => {
       return await new Promise<MoveResult>(resolve =>
-        setTimeout(() => {
+        setTimeout(async () => {
           let moveResult: MoveResult;
           if (currentDifficulty.value == difficulties.value[0]) {
             moveResult = randomMoveAi(
@@ -309,6 +318,26 @@ export default defineComponent({
 
           if (!moveResult.additionalMove)
             currentPlayer.value = currentPlayer.value == 0 ? 1 : 0;
+          else if (moveResult.additionalMove && isTimeLimited.value) {
+            if (
+              currentGameMode.value == gameModes.value[2] ||
+              (currentGameMode.value == gameModes.value[1] &&
+                currentPlayer.value == 1)
+            ) {
+              blockUserMove.value = false;
+              const didMove = await checkPlayerMove(
+                didPlayerMove,
+                currentTimer,
+                timeLimit
+              );
+
+              if (!didMove) {
+                blockUserMove.value = true;
+                await simulateMove(houses, endZones, currentHouseMove);
+                blockUserMove.value = false;
+              }
+            }
+          }
           resolve(moveResult);
         }, 2000)
       );
@@ -335,41 +364,118 @@ export default defineComponent({
       }
     };
 
-    const startGame = () => {
+    const moveStones = async (
+      houses: House[],
+      endZones: EndZone[],
+      houseId: number
+    ) => {
+      if (houses[houseId].getStones == 0) return;
+      else {
+        if (isTimeLimited.value) didPlayerMove.value = true;
+        const moveResult = movePlayerStones(houses, endZones, houseId);
+        moveInfo(houses, endZones, houseId, currentPlayer.value);
+
+        if (!moveResult.additionalMove)
+          currentPlayer.value = currentPlayer.value == 0 ? 1 : 0;
+        else if (moveResult.additionalMove && isTimeLimited.value) {
+          const didMove = await checkPlayerMove(
+            didPlayerMove,
+            currentTimer,
+            timeLimit
+          );
+          if (!didMove) {
+            blockUserMove.value = true;
+            await simulateMove(houses, endZones, currentHouseMove);
+            blockUserMove.value = false;
+          }
+        }
+
+        if (isGameOver(moveResult.houses))
+          endGame(moveResult.houses, moveResult.endZones);
+      }
+    };
+
+    const startGame = async () => {
       if (isGameRunning.value) return;
       isGameRunning.value = !isGameRunning.value;
       if (currentGameMode.value == gameModes.value[0])
         autoSimulation(houses.value, endZones.value);
       else if (currentGameMode.value == gameModes.value[1])
         partialSimulation(houses.value, endZones.value);
+      else if (
+        currentGameMode.value == gameModes.value[2] &&
+        isTimeLimited.value
+      ) {
+        const didMove = await checkPlayerMove(
+          didPlayerMove,
+          currentTimer,
+          timeLimit
+        );
+
+        if (!didMove) {
+          blockUserMove.value = true;
+          await simulateMove(houses.value, endZones.value, currentHouseMove);
+          blockUserMove.value = false;
+        }
+      }
     };
 
     const prepareToMove = async (house: House, i: number) => {
-      if (currentPlayer.value === house.getOwner) {
+      if (currentPlayer.value === house.getOwner && !blockUserMove.value) {
         if (currentGameMode.value == gameModes.value[2])
           moveStones(houses.value, endZones.value, i);
         else if (currentGameMode.value == gameModes.value[1] && i >= 6) {
           moveStones(houses.value, endZones.value, i);
         }
       }
-
-      //   currentPlayer.value === house.getOwner &&
-      // (currentGameMode.value == gameModes.value[2] ||
-      //   (currentGameMode.value == gameModes.value[1] && i >= 6))
-      //   ? moveStones(houses.value, endZones.value, i)
-      //   : "";
     };
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    watch(currentPlayer, (nextPlayer: number, prevPlayer: number) => {
-      // observe currentPlayer change - when user chooses his house
-      // it prompts the PC to move if gamemode is PC vs Player
-      if (
-        isGameRunning.value &&
-        nextPlayer == 0 &&
-        currentGameMode.value == gameModes.value[1]
-      ) {
-        partialSimulation(houses.value, endZones.value);
+    watch(currentPlayer, async (nextPlayer: number, prevPlayer: number) => {
+      if (isGameRunning.value) {
+        if (currentGameMode.value == gameModes.value[1] && nextPlayer == 0) {
+          partialSimulation(houses.value, endZones.value);
+        }
+        if (isTimeLimited.value) {
+          if (
+            (currentGameMode.value == gameModes.value[1] && nextPlayer == 1) ||
+            currentGameMode.value == gameModes.value[2]
+          ) {
+            const didMove = await checkPlayerMove(
+              didPlayerMove,
+              currentTimer,
+              timeLimit
+            );
+            if (!didMove) {
+              blockUserMove.value = true;
+              await simulateMove(
+                houses.value,
+                endZones.value,
+                currentHouseMove
+              );
+              blockUserMove.value = false;
+            }
+          }
+        }
+
+        //   if (currentGameMode.value == gameModes.value[1]) {
+        //     // observe currentPlayer change - when user chooses his house
+        //     // it prompts the PC to move if gamemode is PC vs Player
+        //     if (nextPlayer == 0) partialSimulation(houses.value, endZones.value);
+        //   } else if (
+        //     currentGameMode.value == gameModes.value[2] &&
+        //     isTimeLimited.value
+        //   ) {
+        //     const didMove = await checkPlayerMove(
+        //       didPlayerMove,
+        //       currentTimer,
+        //       timeLimit
+        //     );
+        //     if (!didMove) {
+        //       blockUserMove.value = true;
+        //       await simulateMove(houses.value, endZones.value, currentHouseMove);
+        //       blockUserMove.value = false;
+        //     }
       }
     });
 
@@ -378,6 +484,10 @@ export default defineComponent({
       currentGameMode,
       difficulties,
       currentDifficulty,
+      isTimeLimited,
+      didPlayerMove,
+      currentTimer,
+      blockUserMove,
       isGameRunning,
       houses,
       endZones,
