@@ -49,6 +49,12 @@ button, select {
     }
 }
 
+select {
+  background: #343637;
+  background: -webkit-linear-gradient(to bottom, #414345, #343637);
+  background: linear-gradient(to bottom, #414345, #343637);
+}
+
 button { 
     &:hover {
       cursor: pointer;
