@@ -193,7 +193,7 @@ const loadGame = () => {
   const currentTimer: Ref<number> = ref(0);
   const blockUserMove: Ref<boolean> = ref(false);
   const isGameRunning: Ref<boolean> = ref(false);
-  const timeLimit = 10;
+  const timeLimit = 30;
 
   const houses: Ref<House[]> = ref([]);
   const endZones: Ref<EndZone[]> = ref([]);
@@ -229,7 +229,6 @@ export default defineComponent({
   setup() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const progressBar: any = inject("progressBar");
-    console.log(progressBar.start);
     /* eslint-disable prefer-const */
     let {
       gameModes,
