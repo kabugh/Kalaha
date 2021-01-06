@@ -35,8 +35,8 @@ export const checkPlayerMove = (
     let didMove = false;
     const interval = setInterval(() => {
       currentTimer.value = counter;
-      console.log(`Aktualna runda: ${counter}s`);
-      if (--counter <= 0 || didPlayerMove.value) {
+      console.log(`Time left: ${counter}s`);
+      if (counter-- <= 0 || didPlayerMove.value) {
         didMove = didPlayerMove.value;
         clearInterval(interval);
         didPlayerMove.value = false;

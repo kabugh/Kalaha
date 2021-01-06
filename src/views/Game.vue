@@ -91,7 +91,7 @@
             }}</option>
           </select>
         </div>
-        <!-- <div class="checkbox">
+        <div class="checkbox">
           <label>
             <input type="checkbox" v-model="isTimeLimited" /><span
               class="checkbox-material"
@@ -99,7 +99,7 @@
             ></span>
             <p>30 sec round limit</p>
           </label>
-        </div> -->
+        </div>
         <button type="button" @click="startGame" :disabled="isGameRunning">
           Start
         </button>
@@ -140,11 +140,10 @@
       <a href="https://github.com/kabugh" target="_blank">kabugh</a>
     </p>
   </section>
-  <!-- <button type="button" @click="">Ai move</button> -->
 </template>
 
 <script lang="ts">
-import { defineComponent, Ref, ref, watch } from "vue";
+import { defineComponent, inject, Ref, ref, watch } from "vue";
 import {
   calculateResult,
   checkPlayerMove,
@@ -166,7 +165,7 @@ type EndZone = House;
 
 const loadHouses = () => {
   const numberOfHouses = 12;
-  const numberOfStones = 4;
+  const numberOfStones = 6;
   const numberOfPlayerHouses = playerHousesQuantity;
   const houses: House[] = Array(numberOfHouses);
 
@@ -194,7 +193,7 @@ const loadGame = () => {
   const currentTimer: Ref<number> = ref(0);
   const blockUserMove: Ref<boolean> = ref(false);
   const isGameRunning: Ref<boolean> = ref(false);
-  const timeLimit = 5;
+  const timeLimit = 10;
 
   const houses: Ref<House[]> = ref([]);
   const endZones: Ref<EndZone[]> = ref([]);
@@ -228,6 +227,9 @@ const loadGame = () => {
 export default defineComponent({
   name: "Game",
   setup() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const progressBar: any = inject("progressBar");
+    console.log(progressBar.start);
     /* eslint-disable prefer-const */
     let {
       gameModes,
@@ -251,6 +253,7 @@ export default defineComponent({
       endResult.value = calculateResult(houses, endZones);
       isGameRunning.value = false;
       currentHouseMove.value = -1;
+      progressBar.finish();
     };
 
     const restartGame = () => {
@@ -324,6 +327,10 @@ export default defineComponent({
               (currentGameMode.value == gameModes.value[1] &&
                 currentPlayer.value == 1)
             ) {
+              progressBar.start();
+              progressBar.setColor(
+                currentPlayer.value == 0 ? "#db0a5b" : "#5333ed"
+              );
               blockUserMove.value = false;
               const didMove = await checkPlayerMove(
                 didPlayerMove,
@@ -332,6 +339,7 @@ export default defineComponent({
               );
 
               if (!didMove) {
+                progressBar.fail();
                 blockUserMove.value = true;
                 await simulateMove(houses, endZones, currentHouseMove);
                 blockUserMove.value = false;
@@ -378,6 +386,10 @@ export default defineComponent({
         if (!moveResult.additionalMove)
           currentPlayer.value = currentPlayer.value == 0 ? 1 : 0;
         else if (moveResult.additionalMove && isTimeLimited.value) {
+          progressBar.start();
+          progressBar.setColor(
+            currentPlayer.value == 0 ? "#db0a5b" : "#5333ed"
+          );
           const didMove = await checkPlayerMove(
             didPlayerMove,
             currentTimer,
@@ -406,6 +418,8 @@ export default defineComponent({
         currentGameMode.value == gameModes.value[2] &&
         isTimeLimited.value
       ) {
+        progressBar.start();
+        progressBar.setColor(currentPlayer.value == 0 ? "#db0a5b" : "#5333ed");
         const didMove = await checkPlayerMove(
           didPlayerMove,
           currentTimer,
@@ -413,6 +427,7 @@ export default defineComponent({
         );
 
         if (!didMove) {
+          progressBar.fail();
           blockUserMove.value = true;
           await simulateMove(houses.value, endZones.value, currentHouseMove);
           blockUserMove.value = false;
@@ -434,6 +449,7 @@ export default defineComponent({
     watch(currentPlayer, async (nextPlayer: number, prevPlayer: number) => {
       if (isGameRunning.value) {
         if (currentGameMode.value == gameModes.value[1] && nextPlayer == 0) {
+          if (isTimeLimited.value) progressBar.finish();
           partialSimulation(houses.value, endZones.value);
         }
         if (isTimeLimited.value) {
@@ -441,12 +457,17 @@ export default defineComponent({
             (currentGameMode.value == gameModes.value[1] && nextPlayer == 1) ||
             currentGameMode.value == gameModes.value[2]
           ) {
+            progressBar.start();
+            progressBar.setColor(
+              currentPlayer.value == 0 ? "#db0a5b" : "#5333ed"
+            );
             const didMove = await checkPlayerMove(
               didPlayerMove,
               currentTimer,
               timeLimit
             );
             if (!didMove) {
+              progressBar.fail();
               blockUserMove.value = true;
               await simulateMove(
                 houses.value,
@@ -457,25 +478,6 @@ export default defineComponent({
             }
           }
         }
-
-        //   if (currentGameMode.value == gameModes.value[1]) {
-        //     // observe currentPlayer change - when user chooses his house
-        //     // it prompts the PC to move if gamemode is PC vs Player
-        //     if (nextPlayer == 0) partialSimulation(houses.value, endZones.value);
-        //   } else if (
-        //     currentGameMode.value == gameModes.value[2] &&
-        //     isTimeLimited.value
-        //   ) {
-        //     const didMove = await checkPlayerMove(
-        //       didPlayerMove,
-        //       currentTimer,
-        //       timeLimit
-        //     );
-        //     if (!didMove) {
-        //       blockUserMove.value = true;
-        //       await simulateMove(houses.value, endZones.value, currentHouseMove);
-        //       blockUserMove.value = false;
-        //     }
       }
     });
 
