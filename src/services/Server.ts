@@ -28,17 +28,21 @@ const findOppositeHouseIndex = (houseId: number) => {
 export const checkPlayerMove = (
   didPlayerMove: Ref<boolean>,
   currentTimer: Ref<number>,
+  currentInterval: Ref<number>,
   timeLimit: number
 ) => {
   return new Promise<boolean>(resolve => {
     let counter = timeLimit;
     let didMove = false;
-    const interval = setInterval(() => {
+    const timer = setInterval(() => {
+      currentInterval.value = timer;
+      if (didPlayerMove.value && currentInterval.value != 0)
+        clearInterval(currentInterval.value);
       currentTimer.value = counter;
       console.log(`Time left: ${counter}s`);
       if (counter-- <= 0 || didPlayerMove.value) {
         didMove = didPlayerMove.value;
-        clearInterval(interval);
+        clearInterval(timer);
         didPlayerMove.value = false;
         resolve(didMove);
       }

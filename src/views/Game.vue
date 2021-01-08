@@ -151,7 +151,8 @@ import {
   moveInfo,
   movePlayerStones,
   MoveResult,
-  Result
+  Result,
+  sumStones
 } from "@/services/Server";
 import {
   advancedMoveAi,
@@ -191,9 +192,10 @@ const loadGame = () => {
   const isTimeLimited: Ref<boolean> = ref(false);
   const didPlayerMove: Ref<boolean> = ref(false);
   const currentTimer: Ref<number> = ref(0);
+  const currentInterval: Ref<number> = ref(0);
   const blockUserMove: Ref<boolean> = ref(false);
   const isGameRunning: Ref<boolean> = ref(false);
-  const timeLimit = 30;
+  const timeLimit = 15;
 
   const houses: Ref<House[]> = ref([]);
   const endZones: Ref<EndZone[]> = ref([]);
@@ -213,6 +215,7 @@ const loadGame = () => {
     isTimeLimited,
     didPlayerMove,
     currentTimer,
+    currentInterval,
     blockUserMove,
     isGameRunning,
     timeLimit,
@@ -238,6 +241,7 @@ export default defineComponent({
       isTimeLimited,
       didPlayerMove,
       currentTimer,
+      currentInterval,
       blockUserMove,
       timeLimit,
       houses,
@@ -334,6 +338,7 @@ export default defineComponent({
               const didMove = await checkPlayerMove(
                 didPlayerMove,
                 currentTimer,
+                currentInterval,
                 timeLimit
               );
 
@@ -392,6 +397,7 @@ export default defineComponent({
           const didMove = await checkPlayerMove(
             didPlayerMove,
             currentTimer,
+            currentInterval,
             timeLimit
           );
           if (!didMove) {
@@ -407,7 +413,12 @@ export default defineComponent({
     };
 
     const startGame = async () => {
-      if (isGameRunning.value) return;
+      const areHousesFull = sumStones(houses.value) == houses.value.length * 6;
+      if (isGameRunning.value || !areHousesFull) {
+        if (!areHousesFull) endGame(houses.value, endZones.value);
+        return;
+      }
+
       isGameRunning.value = !isGameRunning.value;
       if (currentGameMode.value == gameModes.value[0])
         autoSimulation(houses.value, endZones.value);
@@ -422,6 +433,7 @@ export default defineComponent({
         const didMove = await checkPlayerMove(
           didPlayerMove,
           currentTimer,
+          currentInterval,
           timeLimit
         );
 
@@ -463,6 +475,7 @@ export default defineComponent({
             const didMove = await checkPlayerMove(
               didPlayerMove,
               currentTimer,
+              currentInterval,
               timeLimit
             );
             if (!didMove) {
@@ -480,6 +493,9 @@ export default defineComponent({
       }
     });
 
+    watch(currentTimer, () => {
+      progressBar.set(((timeLimit - currentTimer.value) / timeLimit) * 100);
+    });
     return {
       gameModes,
       currentGameMode,

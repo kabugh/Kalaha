@@ -9,7 +9,7 @@ const options = {
   failedColor: "#e26a6a",
   thickness: "6px",
   transition: {
-    speed: "0.1s",
+    speed: "0.5s",
     opacity: "0.2s",
     termination: 100
   },
