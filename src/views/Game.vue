@@ -97,7 +97,7 @@
               class="checkbox-material"
               ><span class="check"></span
             ></span>
-            <p>30 sec round limit</p>
+            <p>{{ timeLimit }} sec round limit</p>
           </label>
         </div>
         <button type="button" @click="startGame" :disabled="isGameRunning">
@@ -500,6 +500,7 @@ export default defineComponent({
       isTimeLimited,
       didPlayerMove,
       currentTimer,
+      timeLimit,
       blockUserMove,
       isGameRunning,
       houses,
