@@ -330,7 +330,7 @@ export default defineComponent({
               (currentGameMode.value == gameModes.value[1] &&
                 currentPlayer.value == 1)
             ) {
-              progressBar.start();
+              progressBar.start(timeLimit);
               progressBar.setColor(
                 currentPlayer.value == 0 ? "#db0a5b" : "#5333ed"
               );
@@ -390,7 +390,7 @@ export default defineComponent({
         if (!moveResult.additionalMove)
           currentPlayer.value = currentPlayer.value == 0 ? 1 : 0;
         else if (moveResult.additionalMove && isTimeLimited.value) {
-          progressBar.start();
+          progressBar.start(timeLimit);
           progressBar.setColor(
             currentPlayer.value == 0 ? "#db0a5b" : "#5333ed"
           );
@@ -428,7 +428,7 @@ export default defineComponent({
         currentGameMode.value == gameModes.value[2] &&
         isTimeLimited.value
       ) {
-        progressBar.start();
+        progressBar.start(timeLimit);
         progressBar.setColor(currentPlayer.value == 0 ? "#db0a5b" : "#5333ed");
         const didMove = await checkPlayerMove(
           didPlayerMove,
@@ -468,7 +468,7 @@ export default defineComponent({
             (currentGameMode.value == gameModes.value[1] && nextPlayer == 1) ||
             currentGameMode.value == gameModes.value[2]
           ) {
-            progressBar.start();
+            progressBar.start(timeLimit);
             progressBar.setColor(
               currentPlayer.value == 0 ? "#db0a5b" : "#5333ed"
             );
@@ -491,10 +491,6 @@ export default defineComponent({
           }
         }
       }
-    });
-
-    watch(currentTimer, () => {
-      progressBar.set(((timeLimit - currentTimer.value) / timeLimit) * 100);
     });
     return {
       gameModes,

@@ -2,14 +2,14 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
 import store from "./store";
-import VueProgressBar from "@aacassandra/vue3-progressbar";
+import VueProgressBar from "@/progressBar";
 
 const options = {
   color: "rgb(143, 255, 199)",
   failedColor: "#e26a6a",
   thickness: "6px",
   transition: {
-    speed: "0.5s",
+    speed: "0.2s",
     opacity: "0.2s",
     termination: 100
   },
