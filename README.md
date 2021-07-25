@@ -1,6 +1,6 @@
 # Kalaha board game
 
-kalaha.netlify.app/
+https://kalaha.netlify.app/
 
 # 💡 Development
  * Built using Vue 3 composition api with Typescript support
