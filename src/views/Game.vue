@@ -76,9 +76,9 @@
         <h2>Kalaha</h2>
         <p>Gamemode</p>
         <select v-model="currentGameMode">
-          <option v-for="gameMode in gameModes" :key="gameMode">{{
-            gameMode
-          }}</option>
+          <option v-for="gameMode in gameModes" :key="gameMode">
+            {{ gameMode }}
+          </option>
         </select>
         <div class="difficulty__container">
           <p>PC advancement</p>
@@ -86,9 +86,9 @@
             v-model="currentDifficulty"
             :disabled="currentGameMode == gameModes[2]"
           >
-            <option v-for="difficulty in difficulties" :key="difficulty">{{
-              difficulty
-            }}</option>
+            <option v-for="difficulty in difficulties" :key="difficulty">
+              {{ difficulty }}
+            </option>
           </select>
         </div>
         <div class="checkbox">
@@ -161,9 +161,11 @@ import {
   decisionTreeMoveAi
 } from "@/services/AiPlayer";
 import House from "@/services/House";
-import useSound from 'vue-use-sound'
-import buttonSfx from '@/assets/button.wav'
-
+import { useSound } from "@vueuse/sound";
+// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+// @ts-ignore;
+import buttonSfx from "../assets/button.wav";
+import JSConfetti from "js-confetti";
 
 type EndZone = House;
 
@@ -235,7 +237,8 @@ export default defineComponent({
   setup() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const progressBar: any = inject("progressBar");
-    const { play } = useSound(buttonSfx)
+    const { play } = useSound(buttonSfx);
+    const jsConfetti = new JSConfetti();
     /* eslint-disable prefer-const */
     let {
       gameModes,
@@ -261,6 +264,9 @@ export default defineComponent({
       isGameRunning.value = false;
       currentHouseMove.value = -1;
       progressBar.finish();
+      jsConfetti.addConfetti({
+        emojis: ["🌈", "⚡️", "💥", "✨", "💫", "🌸"]
+      });
     };
 
     const restartGame = () => {
@@ -452,12 +458,13 @@ export default defineComponent({
 
     const prepareToMove = async (house: House, i: number) => {
       if (currentPlayer.value === house.getOwner && !blockUserMove.value) {
-        if (currentGameMode.value == gameModes.value[2])
+        if (currentGameMode.value == gameModes.value[2]) {
           moveStones(houses.value, endZones.value, i);
-        else if (currentGameMode.value == gameModes.value[1] && i >= 6) {
+          play();
+        } else if (currentGameMode.value == gameModes.value[1] && i >= 6) {
           moveStones(houses.value, endZones.value, i);
+          play();
         }
-        play()
       }
     };
 
