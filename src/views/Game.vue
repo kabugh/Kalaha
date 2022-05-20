@@ -161,6 +161,9 @@ import {
   decisionTreeMoveAi
 } from "@/services/AiPlayer";
 import House from "@/services/House";
+import useSound from 'vue-use-sound'
+import buttonSfx from '@/assets/button.wav'
+
 
 type EndZone = House;
 
@@ -232,6 +235,7 @@ export default defineComponent({
   setup() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const progressBar: any = inject("progressBar");
+    const { play } = useSound(buttonSfx)
     /* eslint-disable prefer-const */
     let {
       gameModes,
@@ -453,6 +457,7 @@ export default defineComponent({
         else if (currentGameMode.value == gameModes.value[1] && i >= 6) {
           moveStones(houses.value, endZones.value, i);
         }
+        play()
       }
     };
 
