@@ -165,6 +165,9 @@ import { useSound } from "@vueuse/sound";
 // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 // @ts-ignore;
 import buttonSfx from "../assets/button.wav";
+// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+// @ts-ignore;
+import fanfare from "../assets/fanfare.mp3";
 import JSConfetti from "js-confetti";
 
 type EndZone = House;
@@ -238,6 +241,7 @@ export default defineComponent({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const progressBar: any = inject("progressBar");
     const { play } = useSound(buttonSfx);
+    const { play: playFanfare } = useSound(fanfare);
     const jsConfetti = new JSConfetti();
     /* eslint-disable prefer-const */
     let {
@@ -264,6 +268,7 @@ export default defineComponent({
       isGameRunning.value = false;
       currentHouseMove.value = -1;
       progressBar.finish();
+      playFanfare();
       jsConfetti.addConfetti({
         emojis: ["🌈", "⚡️", "💥", "✨", "💫", "🌸"]
       });
